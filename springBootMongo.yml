@@ -1,34 +1,51 @@
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: jhooq-springboot
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: jhooq-springboot
-  template:
-    metadata:
-      labels:
-        app: jhooq-springboot
-    spec:
-      containers:
-        - name: springboot
-          image: josh1991/king-httpd:king-httpd
-          ports:
-            - containerPort: 8080
-          env:
-            - name: PORT
-              value: "8080"
----
 apiVersion: v1
 kind: Service
 metadata:
-  name: jhooq-springboot
+  name: frontend-service-stable
 spec:
   type: LoadBalancer
-  ports:
-    - port: 80
-      targetPort: 8080
   selector:
-    app: jhooq-springboot
+    app: myportfolio
+    type: frontend
+    track: stable
+  ports:
+  - protocol: TCP
+    port: 80
+    nodePort: 30008
+    targetPort: 4000
+
+---
+  
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: portfolio-deployment-canary
+  labels:
+    app: myportfolio
+    type: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: myportfolio
+      type: frontend
+      track: stable
+  template:
+    metadata:
+      labels:
+        app: myportfolio
+        type: frontend
+        track: stable
+    spec:
+      containers:
+      - name: portfolio
+        image: josh1991/king-httpd:king-httpd
+        ports:
+        - containerPort: 4000
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 4000
+          initialDelaySeconds: 15
+          timeoutSeconds: 1
+          periodSeconds: 10
