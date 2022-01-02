@@ -1,3 +1,5 @@
+CI/CD Pipeline using git url, jenkins, maven (build automation tool), docker, hub.docker.com (remoted repository for the images), and EKS ( Elastic Kubernetes Services Cluster). 
+
 # Build Project Using Maven
 
 Maven is java based build tool to generate executable 
