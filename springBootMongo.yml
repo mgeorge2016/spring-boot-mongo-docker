@@ -39,7 +39,7 @@ spec:
     spec:
       containers:
       - name: portfolio
-        image: josh1991/king-httpd:king-httpd
+        image: josh1991/httpd-group
         ports:
         - containerPort: 4000
         livenessProbe:
