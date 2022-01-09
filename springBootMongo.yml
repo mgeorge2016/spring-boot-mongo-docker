@@ -1,73 +1,141 @@
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
+kind: ConfigMap
+apiVersion: v1
 metadata:
-  name: badefault-cluster-role
-rules:
-- apiGroups:
-  - "" 
-  resources: 
-  - pods
-  - namespaces
-  verbs:
-  - create
-  - delete
-  - deletecollection
-  - get
-  - list
-  - patch
-  - update
-  - watch
+  name: springappconfigmap
+data:
+  username: springapp
+  password: mongodb@123
 
 ---
 apiVersion: v1
-kind: Service
+kind: Secret
 metadata:
-  name: frontend-service-stable
-spec:
-  type: LoadBalancer
-  selector:
-    app: myportfolio
-    type: frontend
-    track: stable
-  ports:
-  - protocol: TCP
-    port: 80
-    nodePort: 30008
-    targetPort: 4000
+  name: springappsecrets
+type: Opaque
+stringData:   # We can define multiple key value pairs.
+  password: devdb@123
 
 ---
-  
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-hostpath
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 1Gi
+  accessModes:
+  - ReadWriteOnce
+  hostPath:
+    path: "/tmp/mongodata"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-hostpath
+spec:
+  storageClassName: manual
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+
+---
+## Spring Boot App
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: portfolio-deployment-canary
-  labels:
-    app: myportfolio
-    type: frontend
+  name: springappdeployment
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: myportfolio
-      type: frontend
-      track: stable
+      app: springapp
   template:
     metadata:
+      name: springapppod
       labels:
-        app: myportfolio
-        type: frontend
-        track: stable
+        app: springapp
     spec:
       containers:
-      - name: portfolio
-        image: josh1991/httpd-group
+      - name: springappcontainer
+        image: dockerhandson/spring-boot-mongo
         ports:
-        - containerPort: 4000
-        livenessProbe:
-          httpGet:
-            path: /
-            port: 4000
-          initialDelaySeconds: 15
-          timeoutSeconds: 1
-          periodSeconds: 10
+        - containerPort: 8080
+        env:
+        - name: MONGO_DB_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: springappconfigmap
+              key: username
+        - name: MONGO_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: springappsecrets
+              key: password
+        - name: MONGO_DB_HOSTNAME
+          value: mongo
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: springapp
+spec:
+  selector:
+    app: springapp
+  ports:
+  - port: 80
+    targetPort: 8080
+  type: NodePort
+---
+# Mongo db pod with volumes(HostPath)
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: mongodbrs
+spec:
+  selector:
+    matchLabels:
+      app: mongodb
+  template:
+     metadata:
+       name: mongodbpod
+       labels:
+         app: mongodb
+     spec:
+       volumes:
+       - name: mongodb-pvc
+         persistentVolumeClaim:
+           claimName: pvc-hostpath
+       containers:
+       - name: mongodbcontainer
+         image: mongo
+         ports:
+         - containerPort: 27017
+         env:
+         - name: MONGO_INITDB_ROOT_USERNAME
+           valueFrom:
+             configMapKeyRef:
+               name: springappconfigmap
+               key: username
+         - name: MONGO_INITDB_ROOT_PASSWORD
+           valueFrom:
+             secretKeyRef:
+               name: springappsecrets
+               key: password
+         volumeMounts:
+         - name: mongodb-pvc
+           mountPath: /data/db
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo
+spec:
+  type: ClusterIP
+  selector:
+    app: mongodb
+  ports:
+  - port: 27017
+    targetPort: 27017
