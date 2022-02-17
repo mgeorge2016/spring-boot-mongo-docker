@@ -40,4 +40,4 @@ spec:
   ports:
     - port: 80 # container port 
       targetPort: 80 # same as container port 
-      nodePort: 32300 # the entrance door to the node where the pods are installed. The nodeport ranges from 30000 ro 32767
+      nodePort: 31200 # the entrance door to the node where the pods are installed. The nodeport ranges from 30000 ro 32767
