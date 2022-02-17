@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
       - name: huguette-dev
-        image: nginx # This image will be given by the company 
+        image: mattrayner/lamp # This image will be given by the company 
         imagePullPolicy: Always 
         ports:
         - containerPort: 80 # This is the container port 
