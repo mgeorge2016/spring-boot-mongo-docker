@@ -2,12 +2,12 @@
 apiVersion: apps/v1 # for versions before 1.9.0 use apps/v1beta2
 kind: Deployment  # name of the manifest 
 metadata:
-  name: huguette-dev # This is the name of the APP/pods 
+  name: mob-dev # This is the name of the APP/pods 
   namespace: mobs 
 spec:
   selector:
     matchLabels:
-      app: huguette-dev # The name of APP/pods 
+      app: mob-dev # The name of APP/pods 
   replicas: 1 # tells us the number of pods matching the template. In this case 1 pod/container/application
   strategy:
     type: RollingUpdate # bluegreen Canary deployement method 
@@ -18,10 +18,10 @@ spec:
   template:
     metadata:
       labels:
-        app: huguette-dev
+        app: mob-dev
     spec:
       containers:
-      - name: huguette-dev
+      - name: mob-dev
         image: mattrayner/lamp # This image will be given by the company 
         imagePullPolicy: Always 
         ports:
@@ -30,14 +30,14 @@ spec:
 apiVersion: v1
 kind: Service # service manifest 
 metadata:
-  name: huguette-services # load balancer and also expose the pods to the user on internet
+  name: mob-services # load balancer and also expose the pods to the user on internet
   labels:
-    app: huguette-dev
+    app: mob-dev
 spec:
   selector:
-    app: huguette-dev
+    app: mob-dev
   type: LoadBalancer
   ports:
     - port: 80 # container port 
       targetPort: 80 # same as container port 
-      nodePort: 31200 # the entrance door to the node where the pods are installed. The nodeport ranges from 30000 ro 32767
+      nodePort: 31300 # the entrance door to the node where the pods are installed. The nodeport ranges from 30000 ro 32767
